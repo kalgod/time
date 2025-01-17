@@ -6,7 +6,7 @@ python -u run.py \
   --task_name long_term_forecast \
   --is_training 1 \
   --root_path ./dataset/video/ \
-  --data_path gtscore.csv \
+  --data_path gtscore_video.csv \
   --model_id bandwidth_16_16 \
   --model $model_name \
   --data video \
@@ -26,5 +26,5 @@ python -u run.py \
   --top_k 5 \
   --des 'Exp' \
   --itr 1 \
-  --train_epochs 4 \
+  --train_epochs 20 \
   --inverse

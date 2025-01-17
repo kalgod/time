@@ -369,8 +369,12 @@ class Dataset_Video(Dataset):
         num_train = int(len(df_raw) * 0.7)
         num_test = int(len(df_raw) * 0.2)
         num_vali = len(df_raw) - num_train - num_test
-        border1s = [0, num_train - self.seq_len, len(df_raw) - num_test - self.seq_len]
+
+        # border1s = [0, num_train - self.seq_len, len(df_raw) - num_test - self.seq_len]
+        # border2s = [num_train, num_train + num_vali, len(df_raw)]
+        border1s = [0, num_train - self.seq_len, num_train - self.seq_len]
         border2s = [num_train, num_train + num_vali, len(df_raw)]
+
         border1 = border1s[self.set_type]
         border2 = border2s[self.set_type]
         self.original_data=df_raw.values[border1:border2]

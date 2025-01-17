@@ -3,5 +3,7 @@ dataset/all_bw.csv
 dataset/gtscore.csv
 dataset/output.csv
 dataset/output_100000.csv
+dataset/video_data.pkl
+dataset/*
 Time-Series-Library/dataset/video/gtscore.csv
 Time-Series-Library/dataset/bandwidth/bandwidth.csv

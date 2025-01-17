@@ -411,13 +411,10 @@ class DNNModel(nn.Module):
         
         # 全连接层
         self.fc = nn.Sequential(
-            nn.Linear(64*3, 32),
+            nn.Linear(64*2, 32),
             nn.ReLU(),
             nn.Linear(32, output_size),
-            #增加ELU的激活函数
-            # nn.ELU()
-            # nn.Sigmoid()
-            # nn.ReLU()
+            nn.Sigmoid()
         )
 
     def forward(self, time_sequences, images, texts):
@@ -429,77 +426,24 @@ class DNNModel(nn.Module):
         
         time_features = self.fc_time(time_sequences)  # 扩展维度后输入到全连接层
 
-        batch_size, in_seq, channel, H, W = images.size()
-        images = images.view(batch_size * in_seq, channel, H, W)
-        image_features = self.clip.encode_image(images)
-        # print(f"image_features:{image_features.shape}")
-        image_features=self.fc_image(image_features)
-        image_features=image_features.view(batch_size, in_seq, -1)
-        image_features=image_features.mean(dim=1)
+        # batch_size, in_seq, channel, H, W = images.size()
+        # images = images.view(batch_size * in_seq, channel, H, W)
+        # image_features = self.clip.encode_image(images)
+        # image_features=self.fc_image(image_features)
+        # image_features=image_features.view(batch_size, in_seq, -1)
+        # image_features=image_features.mean(dim=1)
 
         text_features = self.clip.encode_text(texts)
         text_features=self.fc_text(text_features)
 
         # print(f"image_features:{image_features.shape},text_features:{text_features.shape},time_features:{time_features.shape}")
-        combined_features = torch.cat((time_features,image_features,text_features), dim=1)
+        combined_features = torch.cat((time_features,text_features), dim=1)
         # combined_features=time_features
         
         output = self.fc(combined_features)
         # output = self.fc(time_sequences)
         
         return output
-
-class RNNModel(nn.Module):
-    def __init__(self, input_size, output_size, hidden_size=1, num_layers=1):
-        super(RNNModel, self).__init__()
-        
-        # RNN层
-        self.rnn = nn.RNN(input_size, hidden_size, num_layers=num_layers, batch_first=True)
-        
-        # 全连接层
-        self.fc = nn.Sequential(
-            nn.Linear(hidden_size, 32),
-            nn.ReLU(),
-            nn.Linear(32, output_size)
-        )
-
-    def forward(self, time_sequences, images, texts):
-        time_sequences = time_sequences.unsqueeze(-1)
-        # time_sequences 应该是 (batch_size, sequence_length, input_size) 的形状
-        rnn_out, _ = self.rnn(time_sequences)  # rnn_out 的形状是 (batch_size, seq_length, hidden_size)
-        rnn_out=rnn_out.squeeze()
-        # print(rnn_out.shape,rnn_out)
-        
-        # # 取最后一个时间步的输出
-        # last_time_step_output = rnn_out[:, -1, :]  # (batch_size, hidden_size)
-
-        # output = self.fc(last_time_step_output)  # (batch_size, output_size)
-        return rnn_out
-
-class LSTMModel(nn.Module):
-    def __init__(self, input_size, output_size, hidden_size=1, num_layers=1):
-        super(LSTMModel, self).__init__()
-        
-        # LSTM层
-        self.lstm = nn.LSTM(input_size, hidden_size, num_layers=num_layers, batch_first=True)
-        
-        # 全连接层
-        self.fc = nn.Sequential(
-            nn.Linear(hidden_size, 32),
-            nn.ReLU(),
-            nn.Linear(32, output_size)
-        )
-
-    def forward(self, time_sequences, images, texts):
-        time_sequences = time_sequences.unsqueeze(-1)
-        # time_sequences 应该是 (batch_size, sequence_length, input_size) 的形状
-        lstm_out, _ = self.lstm(time_sequences)  # lstm_out 的形状是 (batch_size, seq_length, hidden_size)
-        lstm_out=lstm_out.squeeze()
-        # 取最后一个时间步的输出
-        # last_time_step_output = lstm_out[:, -1, :]  # (batch_size, hidden_size)
-
-        # output = self.fc(last_time_step_output)  # (batch_size, output_size)
-        return lstm_out
 
 def inverse(data):
     res=[]
@@ -673,8 +617,8 @@ def train(args,train_loader,test_loader,model):
         logging.info("Epoch: {} cost time: {}".format(epoch, time.time() - epoch_time))
         train_loss = np.average(train_loss)
 
-        mae, mse, rmse, mape, mspe,plcc,srcc = test(args,test_loader,model)
-        logging.info(f"mae: {mae:.7f}, mse: {mse:.7f}, rmse: {rmse:.7f}, mape: {mape:.7f}, mspe: {mspe:.7f}, plcc: {plcc:.7f}, srcc: {srcc:.7f}")
+        # mae, mse, rmse, mape, mspe,plcc,srcc = test(args,test_loader,model)
+        # logging.info(f"mae: {mae:.7f}, mse: {mse:.7f}, rmse: {rmse:.7f}, mape: {mape:.7f}, mspe: {mspe:.7f}, plcc: {plcc:.7f}, srcc: {srcc:.7f}")
 
         torch.save(model.state_dict(), f"./checkpoints/model_DNN_{args.tag}_inlen_{args.in_len}_outlen_{args.out_len}_fealen_{args.fea_len}_epoch_{epoch}.pth")
     return model
@@ -701,12 +645,10 @@ def main(args):
     test_loader=DataLoader(test_loader,batch_size=args.batch,shuffle=False)
 
     model=DNNModel(args.in_len,args.out_len).to(args.device)
-    # model=RNNModel(1,1).to(args.device)
-    # model=LSTMModel(1,1).to(args.device)
     model.eval()
     if (args.mode==1): model=train(args,train_loader,test_loader,model)
 
-    model.load_state_dict(torch.load(f"./checkpoints/0.272_model_DNN_{args.tag}_inlen_{args.in_len}_outlen_{args.out_len}_fealen_{args.fea_len}_epoch_{6}.pth",weights_only=True))
+    model.load_state_dict(torch.load(f"./checkpoints/model_DNN_{args.tag}_inlen_{args.in_len}_outlen_{args.out_len}_fealen_{args.fea_len}_epoch_{args.epochs-1}.pth",weights_only=True))
     model=model.to(args.device)
     mae, mse, rmse, mape, mspe,plcc,srcc = test(args,test_loader,model)
     logging.info(f"mae: {mae:.7f}, mse: {mse:.7f}, rmse: {rmse:.7f}, mape: {mape:.7f}, mspe: {mspe:.7f}, plcc: {plcc:.7f}, srcc: {srcc:.7f}")

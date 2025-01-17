@@ -4,7 +4,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from mamba_ssm import Mamba
+# from mamba_ssm import Mamba
+from models.mamba_mini import Mamba
 
 from layers.Embed import DataEmbedding
 

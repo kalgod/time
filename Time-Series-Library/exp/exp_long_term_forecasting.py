@@ -20,6 +20,7 @@ class Exp_Long_Term_Forecast(Exp_Basic):
         super(Exp_Long_Term_Forecast, self).__init__(args)
 
     def _build_model(self):
+        print(self.model_dict.keys())
         model = self.model_dict[self.args.model].Model(self.args).float()
 
         if self.args.use_multi_gpu and self.args.use_gpu:
@@ -46,16 +47,17 @@ class Exp_Long_Term_Forecast(Exp_Basic):
             """计算 Pearson 相关系数"""
             a_mean = torch.mean(a)
             b_mean = torch.mean(b)
+            vx = a - torch.mean(a)
+            vy = b - torch.mean(b)
+            cova=torch.sum(vx * vy)
+            if (cova==0): plcc=cova
+            else: plcc = cova / (torch.norm(vx) * torch.norm(vy))
 
-            # 计算协方差
-            covariance = torch.mean((a - a_mean) * (b - b_mean))
-            
-            # 计算标准差
-            std_true = torch.std(a)
-            std_pred = torch.std(b)
-            
-            # 计算 PLCC
-            plcc = covariance / (std_true * std_pred+1e-8)
+            # covariance = torch.sum((a - a_mean) * (b - b_mean))
+            # std_true = torch.norm(a - a_mean)
+            # std_pred = torch.norm(b - b_mean)
+            # plcc = covariance / (std_true * std_pred+0e-9)
+
             all_plcc.append(plcc)
         plcc=torch.mean(torch.stack(all_plcc))
         return plcc
@@ -67,7 +69,7 @@ class Exp_Long_Term_Forecast(Exp_Basic):
         self.model.eval()
         with torch.no_grad():
             for i, (batch_x, batch_y, batch_x_mark, batch_y_mark) in enumerate(vali_loader):
-                if (i==10): break
+                # if (i==10): break
                 batch_x = batch_x.float().to(self.device)
                 batch_y = batch_y.float()
 
@@ -212,7 +214,7 @@ class Exp_Long_Term_Forecast(Exp_Basic):
 
             # print("Epoch: {} cost time: {}".format(epoch + 1, time.time() - epoch_time))
             # train_loss = np.average(train_loss)
-            # vali_loss = self.vali(vali_data, vali_loader, criterion)
+            vali_loss = self.vali(vali_data, vali_loader, criterion)
             # test_loss = self.vali(test_data, test_loader, criterion)
 
             # print(f"Epoch: {epoch + 1}, Train Loss: {train_loss}, Vali Loss: {vali_loss}, Test Loss: {test_loss}")
